@@ -23,11 +23,12 @@ export const useAuth = () => {
   const initializeAdminUser = async () => {
     try {
       // Check if admin user exists
-      const { data: existingAdmin } = await supabase
+      const { data: existingAdminData } = await supabase
         .from('users')
         .select('*')
-        .eq('email', ADMIN_EMAIL)
-        .single();
+        .eq('email', ADMIN_EMAIL);
+
+      const existingAdmin = existingAdminData && existingAdminData.length > 0 ? existingAdminData[0] : null;
 
       if (!existingAdmin) {
         // Create admin user
@@ -50,11 +51,12 @@ export const useAuth = () => {
       ];
 
       for (const user of defaultUsers) {
-        const { data: existingUser } = await supabase
+        const { data: existingUserData } = await supabase
           .from('users')
           .select('*')
-          .eq('email', user.email)
-          .single();
+          .eq('email', user.email);
+
+        const existingUser = existingUserData && existingUserData.length > 0 ? existingUserData[0] : null;
 
         if (!existingUser) {
           const hashedPassword = await bcrypt.hash('demo123', 10);
@@ -100,13 +102,14 @@ export const useAuth = () => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const { data: user, error } = await supabase
+      const { data: userData, error } = await supabase
         .from('users')
         .select('*')
-        .eq('email', email)
-        .single();
+        .eq('email', email);
 
-      if (error || !user) return false;
+      if (error || !userData || userData.length === 0) return false;
+      
+      const user = userData[0];
 
       const isValidPassword = await bcrypt.compare(password, user.password_hash);
       if (!isValidPassword) return false;
@@ -141,16 +144,16 @@ export const useAuth = () => {
     }
 
     try {
-      const { data: user, error } = await supabase
+      const { data: userData, error } = await supabase
         .from('users')
         .select('password_hash')
-        .eq('id', authState.user.id)
-        .single();
+        .eq('id', authState.user.id);
 
-      if (error || !user) {
+      if (error || !userData || userData.length === 0) {
         return { success: false, error: 'User not found' };
       }
 
+      const user = userData[0];
       const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
       if (!isValidPassword) {
         return { success: false, error: 'Current password is incorrect' };
