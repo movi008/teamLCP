@@ -217,19 +217,23 @@ export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'membe
 
   const addProject = async (projectName: string) => {
     try {
-      // Create a dummy log entry to establish the project in the system
-      const { error } = await supabase
+      // Instead of creating a dummy log entry, we'll just add the project to our local state
+      // and it will be available for use. The project will be persisted when actual logs are created.
+      
+      // For now, we'll create a minimal log entry to establish the project
+      const { data, error } = await supabase
         .from('log_entries')
-        .insert({
-          activity: `Project ${projectName} created`,
+        .insert([{
+          activity: `Project ${projectName} initialized`,
           project: projectName,
           workers: currentUserName || 'System',
-          duration: '00:00:01',
-          duration_seconds: 1,
+          duration: '00:00:00',
+          duration_seconds: 0,
           upwork_hours: 0,
-          description: 'Project initialization entry',
+          description: `Project ${projectName} created by ${currentUserName || 'Admin'}`,
           date: new Date().toISOString().split('T')[0]
-        });
+        }])
+        .select();
 
       if (error) throw error;
       
