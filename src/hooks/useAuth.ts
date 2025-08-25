@@ -267,8 +267,19 @@ export const useAuth = () => {
     
     try {
       // First, delete related data to avoid foreign key constraints
-      await supabase.from('user_status').delete().eq('user_id', userId);
-      await supabase.from('active_time_sessions').delete().eq('user_id', userId);
+      const { error: statusError } = await supabase
+        .from('user_status')
+        .delete()
+        .eq('user_id', userId);
+      
+      if (statusError) console.warn('Error deleting user status:', statusError);
+      
+      const { error: sessionsError } = await supabase
+        .from('active_time_sessions')
+        .delete()
+        .eq('user_id', userId);
+      
+      if (sessionsError) console.warn('Error deleting user sessions:', sessionsError);
       
       // Then delete the user
       const { error } = await supabase

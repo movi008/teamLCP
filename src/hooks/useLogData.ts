@@ -215,7 +215,7 @@ export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'membe
     return [...new Set(logData.map(entry => entry[field] as string))].filter(Boolean);
   };
 
-  const addProject = async (projectName: string, currentUserName?: string) => {
+  const addProject = async (projectName: string) => {
     try {
       // Create a dummy log entry to establish the project in the system
       const { error } = await supabase
@@ -223,7 +223,7 @@ export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'membe
         .insert({
           activity: `Project ${projectName} created`,
           project: projectName,
-          workers: currentUserName || 'Unknown',
+          workers: currentUserName || 'System',
           duration: '00:00:01',
           duration_seconds: 1,
           upwork_hours: 0,

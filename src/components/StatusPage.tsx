@@ -56,30 +56,32 @@ export const StatusPage: React.FC = () => {
   const canSetStatus = user?.role === 'admin' || user?.role === 'member';
 
   const handleStatusChange = (userId: string, newStatus: 'active' | 'available-for-work' | 'not-available') => {
-    if (user && (user.role === 'admin' || userId === user.id)) {
-      // Find the user to ensure we have valid data
-      // If updating own status, use the current user object directly
-      const targetUser = userId === user.id ? user : allUsers.find(u => u.id === userId);
-      if (!targetUser) {
-        console.error('User not found for status update:', userId);
-        return;
-      }
-      
-      const updateStatusAsync = async () => {
-        try {
-          // Validate that we have a proper UUID for the user
-          if (!userId || userId === '1' || !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-            console.error('Invalid user ID for status update:', userId);
-            return;
-          }
-          
-          await updateStatus(userId, newStatus);
-        } catch (error) {
-          console.error('Error updating status:', error);
-        }
-      };
-      updateStatusAsync();
+    if (!user) {
+      console.error('No authenticated user');
+      return;
     }
+
+    // Only allow users to update their own status, or admins to update any status
+    if (user.role !== 'admin' && userId !== user.id) {
+      console.error('Unauthorized status update attempt');
+      return;
+    }
+
+    // Validate UUID format
+    if (!userId || !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.error('Invalid user ID format:', userId);
+      return;
+    }
+
+    updateStatus(userId, newStatus)
+      .then((success) => {
+        if (!success) {
+          console.error('Failed to update status');
+        }
+      })
+      .catch((error) => {
+        console.error('Error updating status:', error);
+      });
   };
 
   const handleSaveMemo = () => {
