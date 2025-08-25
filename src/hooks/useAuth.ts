@@ -40,7 +40,7 @@ export const useAuth = () => {
             name: 'Admin User',
             role: 'admin',
             password_hash: hashedPassword
-          });
+          }, { ignoreDuplicates: true });
 
         if (adminInsertError && adminInsertError.code !== '23505') {
           console.error('Error creating admin user:', adminInsertError);
@@ -71,7 +71,7 @@ export const useAuth = () => {
             .insert({
               ...user,
               password_hash: hashedPassword
-            });
+            }, { ignoreDuplicates: true });
 
           if (userInsertError && userInsertError.code !== '23505') {
             console.error(`Error creating user ${user.email}:`, userInsertError);
