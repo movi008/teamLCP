@@ -59,10 +59,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isOpen, onClose 
   };
 
   const handleRemoveUser = (userId: string) => {
-    const success = removeUser(userId);
-    if (success) {
-      setDeletingUserId(null);
-    }
+    removeUser(userId).then(success => {
+      if (success) {
+        setDeletingUserId(null);
+      } else {
+        console.error('Failed to remove user');
+      }
+    });
   };
   const isAdmin = user?.role === 'admin';
 
