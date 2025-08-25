@@ -33,7 +33,7 @@ export const useAuth = () => {
       if (!existingAdmin) {
         // Create admin user
         const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
-        await supabase
+        const { error: adminInsertError } = await supabase
           .from('users')
           .insert({
             email: ADMIN_EMAIL,
@@ -41,6 +41,12 @@ export const useAuth = () => {
             role: 'admin',
             password_hash: hashedPassword
           });
+
+        if (adminInsertError && adminInsertError.code !== '23505') {
+          console.error('Error creating admin user:', adminInsertError);
+        } else if (adminInsertError?.code === '23505') {
+          console.warn('Admin user already exists, skipping creation');
+        }
       }
 
       // Create default users if they don't exist
@@ -60,12 +66,18 @@ export const useAuth = () => {
 
         if (!existingUser) {
           const hashedPassword = await bcrypt.hash('demo123', 10);
-          await supabase
+          const { error: userInsertError } = await supabase
             .from('users')
             .insert({
               ...user,
               password_hash: hashedPassword
             });
+
+          if (userInsertError && userInsertError.code !== '23505') {
+            console.error(`Error creating user ${user.email}:`, userInsertError);
+          } else if (userInsertError?.code === '23505') {
+            console.warn(`User ${user.email} already exists, skipping creation`);
+          }
         }
       }
     } catch (error) {
