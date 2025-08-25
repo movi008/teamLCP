@@ -44,12 +44,20 @@ export const LogTable: React.FC<LogTableProps> = ({
     setSelectedIds([]);
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (onBulkDelete && selectedIds.length > 0) {
-      onBulkDelete(selectedIds);
-      setSelectedIds([]);
-      setConfirmingBulkDelete(false);
-      setShowBulkDelete(false);
+      try {
+        const success = await onBulkDelete(selectedIds);
+        if (success !== false) {
+          setSelectedIds([]);
+          setConfirmingBulkDelete(false);
+          setShowBulkDelete(false);
+        } else {
+          console.error('Failed to bulk delete logs');
+        }
+      } catch (error) {
+        console.error('Error bulk deleting logs:', error);
+      }
     }
   };
 
@@ -59,6 +67,13 @@ export const LogTable: React.FC<LogTableProps> = ({
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
+  };
+
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const startEditing = (entry: LogEntry) => {
@@ -95,21 +110,6 @@ export const LogTable: React.FC<LogTableProps> = ({
         console.error('Error deleting log:', error);
       }
     }
-  };
-
-      try {
-        const success = await onBulkDelete(selectedIds);
-        if (success !== false) {
-          setSelectedIds([]);
-          setConfirmingBulkDelete(false);
-          setShowBulkDelete(false);
-        } else {
-          console.error('Failed to bulk delete logs');
-        }
-      } catch (error) {
-        console.error('Error bulk deleting logs:', error);
-      }
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (logs.length === 0) {
