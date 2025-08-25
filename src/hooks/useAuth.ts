@@ -15,7 +15,6 @@ export const useAuth = () => {
 
   // Initialize admin user and load users
   useEffect(() => {
-    initializeAdminUser();
     loadUsers();
     checkAuthState();
   }, []);
