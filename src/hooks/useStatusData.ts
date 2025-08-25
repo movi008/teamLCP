@@ -68,6 +68,12 @@ export const useStatusData = () => {
   };
 
   const updateStatus = async (userId: string, status: UserStatus, memo?: string) => {
+    // Validate UUID format
+    if (!userId || !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.error('Invalid UUID format for user ID:', userId);
+      return false;
+    }
+    
     try {
       const timestamp = new Date().toISOString();
       

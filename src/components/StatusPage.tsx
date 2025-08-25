@@ -57,8 +57,21 @@ export const StatusPage: React.FC = () => {
 
   const handleStatusChange = (userId: string, newStatus: 'active' | 'available-for-work' | 'not-available') => {
     if (user && (user.role === 'admin' || userId === user.id)) {
+      // Find the user to ensure we have valid data
+      const targetUser = allUsers.find(u => u.id === userId);
+      if (!targetUser) {
+        console.error('User not found for status update:', userId);
+        return;
+      }
+      
       const updateStatusAsync = async () => {
         try {
+          // Validate that we have a proper UUID for the user
+          if (!userId || userId === '1' || !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            console.error('Invalid user ID for status update:', userId);
+            return;
+          }
+          
           await updateStatus(userId, newStatus);
         } catch (error) {
           console.error('Error updating status:', error);
