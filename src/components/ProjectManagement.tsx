@@ -38,10 +38,23 @@ export const ProjectManagement: React.FC<ProjectManagementProps> = ({
       return;
     }
     
-    onAddProject(newProjectName.trim());
-    setNewProjectName('');
-    setShowCreateForm(false);
-    setCreateError('');
+    const createProjectAsync = async () => {
+      try {
+        const success = await onAddProject(newProjectName.trim());
+        if (success !== false) {
+          setNewProjectName('');
+          setShowCreateForm(false);
+          setCreateError('');
+        } else {
+          setCreateError('Failed to create project');
+        }
+      } catch (error) {
+        console.error('Error creating project:', error);
+        setCreateError('Failed to create project');
+      }
+    };
+    
+    createProjectAsync();
   };
 
   const handleRemoveProject = async (projectName: string) => {

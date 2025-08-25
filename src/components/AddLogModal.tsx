@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, X, User, FolderOpen, FileText, AlertCircle } from 'lucide-react';
 import { LogEntry } from '../types';
+import { useAuth } from '../hooks/useAuth';
 
 interface AddLogModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export const AddLogModal: React.FC<AddLogModalProps> = ({
   workers,
   projects
 }) => {
+  const { allUsers } = useAuth();
   const [formData, setFormData] = useState({
     activity: '',
     project: '',
@@ -28,6 +30,16 @@ export const AddLogModal: React.FC<AddLogModalProps> = ({
   });
   const [error, setError] = useState('');
 
+  // Get available workers from both existing log data and all users
+  const availableWorkers = React.useMemo(() => {
+    const logWorkers = new Set(workers);
+    const userWorkers = allUsers
+      .filter(user => user.role === 'admin' || user.role === 'member')
+      .map(user => user.name);
+    
+    userWorkers.forEach(worker => logWorkers.add(worker));
+    return Array.from(logWorkers).sort();
+  }, [workers, allUsers]);
   if (!isOpen) return null;
 
   const parseDuration = (duration: string) => {
@@ -163,7 +175,7 @@ export const AddLogModal: React.FC<AddLogModalProps> = ({
                 required
               >
                 <option value="">Select Worker</option>
-                {workers.map(worker => (
+                {availableWorkers.map(worker => (
                   <option key={worker} value={worker}>{worker}</option>
                 ))}
               </select>

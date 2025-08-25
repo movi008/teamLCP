@@ -57,7 +57,14 @@ export const StatusPage: React.FC = () => {
 
   const handleStatusChange = (userId: string, newStatus: 'active' | 'available-for-work' | 'not-available') => {
     if (user && (user.role === 'admin' || userId === user.id)) {
-      updateStatus(userId, newStatus);
+      const updateStatusAsync = async () => {
+        try {
+          await updateStatus(userId, newStatus);
+        } catch (error) {
+          console.error('Error updating status:', error);
+        }
+      };
+      updateStatusAsync();
     }
   };
 

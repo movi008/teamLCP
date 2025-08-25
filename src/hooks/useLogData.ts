@@ -216,8 +216,29 @@ export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'membe
   };
 
   const addProject = async (projectName: string) => {
-    // Projects are managed through log entries, no separate table needed
-    // This function can be used to ensure project appears in dropdowns
+    try {
+      // Create a dummy log entry to establish the project in the system
+      const { error } = await supabase
+        .from('log_entries')
+        .insert({
+          activity: `Project ${projectName} created`,
+          project: projectName,
+          workers: 'System',
+          duration: '00:00:01',
+          duration_seconds: 1,
+          upwork_hours: 0,
+          description: 'Project initialization entry',
+          date: new Date().toISOString().split('T')[0]
+        });
+
+      if (error) throw error;
+      
+      await loadLogData(); // Refresh data
+      return true;
+    } catch (error) {
+      console.error('Error adding project:', error);
+      return false;
+    }
   };
 
   const removeProject = async (projectName: string) => {

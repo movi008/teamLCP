@@ -98,8 +98,11 @@ export const useStatusData = () => {
         status,
         timestamp
       }]);
+      
+      return true;
     } catch (error) {
       console.error('Error updating status:', error);
+      return false;
     }
   };
 
