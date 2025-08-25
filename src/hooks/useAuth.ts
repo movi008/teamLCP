@@ -266,6 +266,11 @@ export const useAuth = () => {
     if (authState.user?.role !== 'admin') return false;
     
     try {
+      // First, delete related data to avoid foreign key constraints
+      await supabase.from('user_status').delete().eq('user_id', userId);
+      await supabase.from('active_time_sessions').delete().eq('user_id', userId);
+      
+      // Then delete the user
       const { error } = await supabase
         .from('users')
         .delete()
