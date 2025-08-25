@@ -41,7 +41,7 @@ export const AddLogModal: React.FC<AddLogModalProps> = ({
     return hours * 3600 + minutes * 60 + seconds;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -67,20 +67,28 @@ export const AddLogModal: React.FC<AddLogModalProps> = ({
       date: formData.date
     };
 
-    onAddLog(newLog);
-    
-    // Reset form
-    setFormData({
-      activity: '',
-      project: '',
-      workers: '',
-      date: new Date().toISOString().split('T')[0],
-      duration: '',
-      upworkHours: 0,
-      description: ''
-    });
-    
-    onClose();
+    try {
+      const success = await onAddLog(newLog);
+      if (success !== false) {
+        // Reset form
+        setFormData({
+          activity: '',
+          project: '',
+          workers: '',
+          date: new Date().toISOString().split('T')[0],
+          duration: '',
+          upworkHours: 0,
+          description: ''
+        });
+        
+        onClose();
+      } else {
+        setError('Failed to add log entry');
+      }
+    } catch (error) {
+      console.error('Error adding log:', error);
+      setError('Failed to add log entry');
+    }
   };
 
   return (

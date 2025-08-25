@@ -43,19 +43,28 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isOpen, onClose 
       return;
     }
     
-    const newUser = newUserRole === 'viewer' 
-      ? createViewer(trimmedEmail, trimmedName)
-      : createUser(trimmedEmail, trimmedName);
-      
-    if (newUser) {
-      setNewUserEmail('');
-      setNewUserName('');
-      setNewUserRole('member');
-      setShowCreateForm(false);
-      setCreateError('');
-    } else {
-      setCreateError('Failed to create user');
-    }
+    const createUserAsync = async () => {
+      try {
+        const newUser = newUserRole === 'viewer' 
+          ? await createViewer(trimmedEmail, trimmedName)
+          : await createUser(trimmedEmail, trimmedName);
+          
+        if (newUser) {
+          setNewUserEmail('');
+          setNewUserName('');
+          setNewUserRole('member');
+          setShowCreateForm(false);
+          setCreateError('');
+        } else {
+          setCreateError('Failed to create user');
+        }
+      } catch (error) {
+        console.error('Error creating user:', error);
+        setCreateError('Failed to create user');
+      }
+    };
+    
+    createUserAsync();
   };
 
   const handleRemoveUser = (userId: string) => {

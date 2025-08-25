@@ -82,17 +82,33 @@ export const LogTable: React.FC<LogTableProps> = ({
     setDeletingId(id);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deletingId) {
-      onDeleteLog(deletingId);
-      setDeletingId(null);
+      try {
+        const success = await onDeleteLog(deletingId);
+        if (success !== false) {
+          setDeletingId(null);
+        } else {
+          console.error('Failed to delete log');
+        }
+      } catch (error) {
+        console.error('Error deleting log:', error);
+      }
     }
   };
 
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+      try {
+        const success = await onBulkDelete(selectedIds);
+        if (success !== false) {
+          setSelectedIds([]);
+          setConfirmingBulkDelete(false);
+          setShowBulkDelete(false);
+        } else {
+          console.error('Failed to bulk delete logs');
+        }
+      } catch (error) {
+        console.error('Error bulk deleting logs:', error);
+      }
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 

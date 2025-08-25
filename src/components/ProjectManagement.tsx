@@ -44,9 +44,13 @@ export const ProjectManagement: React.FC<ProjectManagementProps> = ({
     setCreateError('');
   };
 
-  const handleRemoveProject = (projectName: string) => {
-    onRemoveProject(projectName);
-    setDeletingProject(null);
+  const handleRemoveProject = async (projectName: string) => {
+    try {
+      await onRemoveProject(projectName);
+      setDeletingProject(null);
+    } catch (error) {
+      console.error('Error removing project:', error);
+    }
   };
 
   return (

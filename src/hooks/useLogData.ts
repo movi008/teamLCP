@@ -129,8 +129,10 @@ export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'membe
       };
 
       setLogData(prev => [newLog, ...prev]);
+      return true;
     } catch (error) {
       console.error('Error adding log:', error);
+      return false;
     }
   };
 
@@ -144,8 +146,10 @@ export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'membe
       if (error) throw error;
 
       setLogData(prev => prev.filter(entry => entry.id !== id));
+      return true;
     } catch (error) {
       console.error('Error deleting log:', error);
+      return false;
     }
   };
 
@@ -159,8 +163,10 @@ export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'membe
       if (error) throw error;
 
       setLogData(prev => prev.filter(entry => !ids.includes(entry.id)));
+      return true;
     } catch (error) {
       console.error('Error bulk deleting logs:', error);
+      return false;
     }
   };
 
@@ -225,8 +231,10 @@ export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'membe
       if (error) throw error;
 
       setLogData(prev => prev.filter(entry => entry.project !== projectName));
+      return true;
     } catch (error) {
       console.error('Error removing project:', error);
+      return false;
     }
   };
 
