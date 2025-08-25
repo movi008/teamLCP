@@ -22,31 +22,22 @@ export const useAuth = () => {
 
   const initializeAdminUser = async () => {
     try {
-      // Check if admin user exists
-      const { data: existingAdminData } = await supabase
+      // Create admin user using upsert
+      const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
+      const { error: adminUpsertError } = await supabase
         .from('users')
-        .select('*')
-        .eq('email', ADMIN_EMAIL);
+        .upsert({
+          email: ADMIN_EMAIL,
+          name: 'Admin User',
+          role: 'admin',
+          password_hash: hashedPassword
+        }, { 
+          onConflict: 'email',
+          ignoreDuplicates: true 
+        });
 
-      const existingAdmin = existingAdminData && existingAdminData.length > 0 ? existingAdminData[0] : null;
-
-      if (!existingAdmin) {
-        // Create admin user
-        const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
-        const { error: adminInsertError } = await supabase
-          .from('users')
-          .insert({
-            email: ADMIN_EMAIL,
-            name: 'Admin User',
-            role: 'admin',
-            password_hash: hashedPassword
-          }, { ignoreDuplicates: true });
-
-        if (adminInsertError && adminInsertError.code !== '23505') {
-          console.error('Error creating admin user:', adminInsertError);
-        } else if (adminInsertError?.code === '23505') {
-          console.warn('Admin user already exists, skipping creation');
-        }
+      if (adminUpsertError) {
+        console.error('Error upserting admin user:', adminUpsertError);
       }
 
       // Create default users if they don't exist
@@ -57,27 +48,19 @@ export const useAuth = () => {
       ];
 
       for (const user of defaultUsers) {
-        const { data: existingUserData } = await supabase
+        const hashedPassword = await bcrypt.hash('demo123', 10);
+        const { error: userUpsertError } = await supabase
           .from('users')
-          .select('*')
-          .eq('email', user.email);
+          .upsert({
+            ...user,
+            password_hash: hashedPassword
+          }, { 
+            onConflict: 'email',
+            ignoreDuplicates: true 
+          });
 
-        const existingUser = existingUserData && existingUserData.length > 0 ? existingUserData[0] : null;
-
-        if (!existingUser) {
-          const hashedPassword = await bcrypt.hash('demo123', 10);
-          const { error: userInsertError } = await supabase
-            .from('users')
-            .insert({
-              ...user,
-              password_hash: hashedPassword
-            }, { ignoreDuplicates: true });
-
-          if (userInsertError && userInsertError.code !== '23505') {
-            console.error(`Error creating user ${user.email}:`, userInsertError);
-          } else if (userInsertError?.code === '23505') {
-            console.warn(`User ${user.email} already exists, skipping creation`);
-          }
+        if (userUpsertError) {
+          console.error(`Error upserting user ${user.email}:`, userUpsertError);
         }
       }
     } catch (error) {
