@@ -68,12 +68,6 @@ export const useStatusData = () => {
   };
 
   const updateStatus = async (userId: string, status: UserStatus, memo?: string) => {
-    // Validate UUID format
-    if (!userId || !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      console.error('Invalid UUID format for user ID:', userId);
-      return false;
-    }
-    
     try {
       const timestamp = new Date().toISOString();
       
@@ -87,7 +81,10 @@ export const useStatusData = () => {
           timestamp
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating status:', error);
+        throw error;
+      }
 
       // Update local state
       setStatuses(prev => ({
@@ -108,7 +105,7 @@ export const useStatusData = () => {
       return true;
     } catch (error) {
       console.error('Error updating status:', error);
-      return false;
+      throw error;
     }
   };
 

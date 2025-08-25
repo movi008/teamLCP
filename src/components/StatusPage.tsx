@@ -73,15 +73,16 @@ export const StatusPage: React.FC = () => {
       return;
     }
 
-    updateStatus(userId, newStatus)
-      .then((success) => {
-        if (!success) {
-          console.error('Failed to update status');
-        }
-      })
-      .catch((error) => {
+    const updateStatusAsync = async () => {
+      try {
+        await updateStatus(userId, newStatus);
+        console.log('Status updated successfully');
+      } catch (error) {
         console.error('Error updating status:', error);
-      });
+      }
+    };
+    
+    updateStatusAsync();
   };
 
   const handleSaveMemo = () => {

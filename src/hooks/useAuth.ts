@@ -266,21 +266,6 @@ export const useAuth = () => {
     if (authState.user?.role !== 'admin') return false;
     
     try {
-      // First, delete related data to avoid foreign key constraints
-      const { error: statusError } = await supabase
-        .from('user_status')
-        .delete()
-        .eq('user_id', userId);
-      
-      if (statusError) console.warn('Error deleting user status:', statusError);
-      
-      const { error: sessionsError } = await supabase
-        .from('active_time_sessions')
-        .delete()
-        .eq('user_id', userId);
-      
-      if (sessionsError) console.warn('Error deleting user sessions:', sessionsError);
-      
       // Then delete the user
       const { error } = await supabase
         .from('users')
@@ -289,14 +274,14 @@ export const useAuth = () => {
 
       if (error) {
         console.error('Remove user error:', error);
-        return false;
+        throw error;
       }
 
       await loadUsers(); // Refresh users list
       return true;
     } catch (error) {
       console.error('Remove user error:', error);
-      return false;
+      throw error;
     }
   };
 
