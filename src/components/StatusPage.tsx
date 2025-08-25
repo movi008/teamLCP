@@ -58,7 +58,8 @@ export const StatusPage: React.FC = () => {
   const handleStatusChange = (userId: string, newStatus: 'active' | 'available-for-work' | 'not-available') => {
     if (user && (user.role === 'admin' || userId === user.id)) {
       // Find the user to ensure we have valid data
-      const targetUser = allUsers.find(u => u.id === userId);
+      // If updating own status, use the current user object directly
+      const targetUser = userId === user.id ? user : allUsers.find(u => u.id === userId);
       if (!targetUser) {
         console.error('User not found for status update:', userId);
         return;
