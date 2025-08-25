@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, User, TrendingUp, Square, Play } from 'lucide-react';
+import { Clock, User, FileText } from 'lucide-react';
 import { useActiveTimeTracking } from '../hooks/useActiveTimeTracking';
 import { useAuth } from '../hooks/useAuth';
+import { useTimezone } from '../hooks/useTimezone';
 
 interface ActiveTimeDisplayProps {
   selectedDate?: string;
@@ -19,6 +20,7 @@ export const ActiveTimeDisplay: React.FC<ActiveTimeDisplayProps> = ({
     activeTimeData
   } = useActiveTimeTracking();
   const { allUsers, user } = useAuth();
+  const { formatTime } = useTimezone();
 
   // Force re-render every 2 seconds to show live updates
   useEffect(() => {
@@ -31,10 +33,6 @@ export const ActiveTimeDisplay: React.FC<ActiveTimeDisplayProps> = ({
 
   const dailyUserSummaries = getAllUsersActiveTimeForDate(selectedDate);
   const currentlyActiveUsers = getCurrentActiveUsers();
-
-  const handleManualToggle = (userId: string) => {
-    // Implementation for manual toggle
-  };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);

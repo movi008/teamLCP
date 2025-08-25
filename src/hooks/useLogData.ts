@@ -1,145 +1,52 @@
 import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '../lib/supabase';
 import { LogEntry, FilterState } from '../types';
 
-// Mock data matching the CSV structure
-const mockLogData: LogEntry[] = [
-  {
-    id: '1',
-    activity: 'RHB - Build Instagram Reels Transcript API',
-    project: 'RHB',
-    workers: 'Hasan Khan',
-    duration: '07:44:31',
-    duration_seconds: 27871,
-    upwork_hours: 7.74,
-    description: 'Built API for extracting and processing Instagram Reels transcripts',
-    date: '2025-08-01'
-  },
-  {
-    id: '2',
-    activity: 'RHB - Telegram Bot',
-    project: 'RHR',
-    workers: 'Hasan Khan',
-    duration: '10:41:55',
-    duration_seconds: 38515,
-    upwork_hours: 10.7,
-    description: 'Developed Telegram bot with automated messaging and user interaction features',
-    date: '2025-08-02'
-  },
-  {
-    id: '3',
-    activity: 'RHB - Persona Bot For Stacy Thomas',
-    project: 'RHR',
-    workers: 'Hasan Khan',
-    duration: '21:50:41',
-    duration_seconds: 78641,
-    upwork_hours: 21.84,
-    description: 'Created personalized AI bot for Stacy Thomas with custom personality traits',
-    date: '2025-08-03'
-  },
-  {
-    id: '4',
-    activity: 'RHB - Make persona bot useing youtube transcript',
-    project: 'RHR',
-    workers: 'Hasan Khan',
-    duration: '27:26:10',
-    duration_seconds: 98770,
-    upwork_hours: 27.44,
-    description: 'Developed persona bot using YouTube transcript analysis for personality modeling',
-    date: '2025-08-04'
-  },
-  {
-    id: '5',
-    activity: 'RHB - B2B - Lead Generation',
-    project: 'RHR',
-    workers: 'Hasan Khan',
-    duration: '05:48:21',
-    duration_seconds: 20901,
-    upwork_hours: 5.81,
-    description: 'Implemented B2B lead generation system with automated prospecting',
-    date: '2025-08-05'
-  },
-  {
-    id: '6',
-    activity: 'RHB - AI Agent for make metada',
-    project: 'RHR',
-    workers: 'Hasan Khan',
-    duration: '16:14:14',
-    duration_seconds: 58454,
-    upwork_hours: 16.24,
-    description: 'Created AI agent for automated metadata generation and optimization',
-    date: '2025-08-06'
-  },
-  {
-    id: '7',
-    activity: 'BAY - Personalized Listings & Buyers Roadmap',
-    project: 'RHR',
-    workers: 'Hasan Khan',
-    duration: '06:12:17',
-    duration_seconds: 22337,
-    upwork_hours: 6.2,
-    description: 'Developed personalized real estate listings and buyer journey roadmap',
-    date: '2025-08-07'
-  },
-  {
-    id: '8',
-    activity: 'RHB - persona Bot Automation',
-    project: 'RHR',
-    workers: 'Rohan Mostofa',
-    duration: '07:15:28',
-    duration_seconds: 26128,
-    upwork_hours: 7.26,
-    description: 'Automated persona bot workflows and response generation',
-    date: '2025-08-22'
-  }
-];
-
-const STORAGE_KEY = 'daily_log_data';
-const USERS_STORAGE_KEY = 'app_users_data';
-
-const loadLogData = (): LogEntry[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error('Error loading log data from localStorage:', error);
-  }
-  return mockLogData;
-};
-
-const loadUsers = () => {
-  try {
-    const stored = localStorage.getItem(USERS_STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error('Error loading users from localStorage:', error);
-  }
-  return [];
-};
-
-const saveLogData = (data: LogEntry[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error('Error saving log data to localStorage:', error);
-  }
-};
 export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'member' | 'viewer') => {
-  const [logData, setLogData] = useState<LogEntry[]>(() => loadLogData());
+  const [logData, setLogData] = useState<LogEntry[]>([]);
   const [filters, setFilters] = useState<FilterState>({
     startDate: '',
     endDate: '',
     workers: [],
     projects: []
   });
+  const [loading, setLoading] = useState(true);
 
-  // Save to localStorage whenever logData changes
+  // Load log data from Supabase
   useEffect(() => {
-    saveLogData(logData);
-  }, [logData]);
+    loadLogData();
+  }, []);
+
+  const loadLogData = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('log_entries')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedData: LogEntry[] = (data || []).map(entry => ({
+        id: entry.id,
+        activity: entry.activity,
+        project: entry.project,
+        workers: entry.workers,
+        duration: entry.duration,
+        duration_seconds: entry.duration_seconds,
+        upwork_hours: entry.upwork_hours,
+        description: entry.description,
+        date: entry.date
+      }));
+
+      setLogData(formattedData);
+    } catch (error) {
+      console.error('Error loading log data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredData = useMemo(() => {
     let filtered = logData;
 
@@ -163,10 +70,6 @@ export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'membe
       filtered = filtered.filter(entry => filters.workers.includes(entry.workers));
     }
 
-    if (filters.month) {
-      filtered = filtered.filter(entry => entry.date.startsWith(filters.month));
-    }
-
     if (filters.projects.length > 0) {
       filtered = filtered.filter(entry => filters.projects.includes(entry.project));
     }
@@ -174,74 +77,159 @@ export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'membe
     return filtered;
   }, [logData, filters, currentUserName, userRole]);
 
-  const updateDescription = (id: string, description: string) => {
-    setLogData(prev => prev.map(entry => 
-      entry.id === id ? { ...entry, description } : entry
-    ));
+  const updateDescription = async (id: string, description: string) => {
+    try {
+      const { error } = await supabase
+        .from('log_entries')
+        .update({ 
+          description,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setLogData(prev => prev.map(entry => 
+        entry.id === id ? { ...entry, description } : entry
+      ));
+    } catch (error) {
+      console.error('Error updating description:', error);
+    }
   };
 
-  const addLog = (log: Omit<LogEntry, 'id'>) => {
-    const newLog: LogEntry = {
-      ...log,
-      id: Date.now().toString()
-    };
-    setLogData(prev => [newLog, ...prev]);
+  const addLog = async (log: Omit<LogEntry, 'id'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('log_entries')
+        .insert({
+          activity: log.activity,
+          project: log.project,
+          workers: log.workers,
+          duration: log.duration,
+          duration_seconds: log.duration_seconds,
+          upwork_hours: log.upwork_hours,
+          description: log.description,
+          date: log.date
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newLog: LogEntry = {
+        id: data.id,
+        activity: data.activity,
+        project: data.project,
+        workers: data.workers,
+        duration: data.duration,
+        duration_seconds: data.duration_seconds,
+        upwork_hours: data.upwork_hours,
+        description: data.description,
+        date: data.date
+      };
+
+      setLogData(prev => [newLog, ...prev]);
+    } catch (error) {
+      console.error('Error adding log:', error);
+    }
   };
 
-  const deleteLog = (id: string) => {
-    setLogData(prev => prev.filter(entry => entry.id !== id));
+  const deleteLog = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('log_entries')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setLogData(prev => prev.filter(entry => entry.id !== id));
+    } catch (error) {
+      console.error('Error deleting log:', error);
+    }
   };
 
-  const bulkDeleteLogs = (ids: string[]) => {
-    setLogData(prev => prev.filter(entry => !ids.includes(entry.id)));
+  const bulkDeleteLogs = async (ids: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('log_entries')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+
+      setLogData(prev => prev.filter(entry => !ids.includes(entry.id)));
+    } catch (error) {
+      console.error('Error bulk deleting logs:', error);
+    }
   };
 
-  const importLogs = (logs: Omit<LogEntry, 'id'>[]) => {
-    const newLogs: LogEntry[] = logs.map((log, index) => ({
-      ...log,
-      id: `${Date.now()}-${index}`
-    }));
-    setLogData(prev => [...newLogs, ...prev]);
+  const importLogs = async (logs: Omit<LogEntry, 'id'>[]) => {
+    try {
+      const { data, error } = await supabase
+        .from('log_entries')
+        .insert(logs.map(log => ({
+          activity: log.activity,
+          project: log.project,
+          workers: log.workers,
+          duration: log.duration,
+          duration_seconds: log.duration_seconds,
+          upwork_hours: log.upwork_hours,
+          description: log.description,
+          date: log.date
+        })))
+        .select();
+
+      if (error) throw error;
+
+      const newLogs: LogEntry[] = (data || []).map(entry => ({
+        id: entry.id,
+        activity: entry.activity,
+        project: entry.project,
+        workers: entry.workers,
+        duration: entry.duration,
+        duration_seconds: entry.duration_seconds,
+        upwork_hours: entry.upwork_hours,
+        description: entry.description,
+        date: entry.date
+      }));
+
+      setLogData(prev => [...newLogs, ...prev]);
+    } catch (error) {
+      console.error('Error importing logs:', error);
+    }
   };
 
   const getUniqueValues = (field: keyof LogEntry) => {
     if (field === 'workers') {
-      // Get workers from both log data and user management system
-      const logWorkers = [...new Set(logData.map(entry => entry[field] as string))].filter(Boolean);
-      const users = loadUsers();
-      const userNames = users
-        .filter(user => user.role === 'member' || user.role === 'admin')
-        .map(user => user.name);
-      
-      // Combine and deduplicate
-      return [...new Set([...logWorkers, ...userNames])].filter(Boolean);
+      // Get workers from log data
+      return [...new Set(logData.map(entry => entry[field] as string))].filter(Boolean);
     }
     
     return [...new Set(logData.map(entry => entry[field] as string))].filter(Boolean);
   };
 
-  const addProject = (projectName: string) => {
-    // Add a dummy log entry with the new project to make it available in the project list
-    // This ensures the project appears in dropdowns immediately
-    const dummyLog: LogEntry = {
-      id: `project-${Date.now()}`,
-      activity: `Project ${projectName} created`,
-      project: projectName,
-      workers: 'System',
-      duration: '00:00:01',
-      duration_seconds: 1,
-      upwork_hours: 0,
-      description: 'Project created via project management',
-      date: new Date().toISOString().split('T')[0]
-    };
-    
-    setLogData(prev => [dummyLog, ...prev]);
+  const addProject = async (projectName: string) => {
+    // Projects are managed through log entries, no separate table needed
+    // This function can be used to ensure project appears in dropdowns
   };
 
-  const removeProject = (projectName: string) => {
+  const removeProject = async (projectName: string) => {
     // Remove all logs with this project
-    setLogData(prev => prev.filter(entry => entry.project !== projectName));
+    try {
+      const { error } = await supabase
+        .from('log_entries')
+        .delete()
+        .eq('project', projectName);
+
+      if (error) throw error;
+
+      setLogData(prev => prev.filter(entry => entry.project !== projectName));
+    } catch (error) {
+      console.error('Error removing project:', error);
+    }
   };
+
   const exportToCSV = () => {
     const headers = [
       'Date', 'Project', 'Worker', 'Activity', 'Hours'
@@ -281,6 +269,7 @@ export const useLogData = (currentUserName?: string, userRole?: 'admin' | 'membe
     getUniqueValues,
     exportToCSV,
     addProject,
-    removeProject
+    removeProject,
+    loading
   };
 };

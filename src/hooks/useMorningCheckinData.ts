@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 export interface CheckinEntry {
   id: string;
@@ -8,58 +9,86 @@ export interface CheckinEntry {
   timestamp: string;
 }
 
-const STORAGE_KEY = 'morning_checkin_data';
-
-const loadCheckinData = (): CheckinEntry[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error('Error loading checkin data from localStorage:', error);
-  }
-  return [];
-};
-
-const saveCheckinData = (data: CheckinEntry[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error('Error saving checkin data to localStorage:', error);
-  }
-};
-
 export const useMorningCheckinData = () => {
-  const [checkins, setCheckins] = useState<CheckinEntry[]>(() => loadCheckinData());
+  const [checkins, setCheckins] = useState<CheckinEntry[]>([]);
 
-  // Save to localStorage whenever checkins change
+  // Load checkin data from Supabase
   useEffect(() => {
-    saveCheckinData(checkins);
-  }, [checkins]);
+    loadCheckinData();
+  }, []);
 
-  const addCheckin = (checkin: Omit<CheckinEntry, 'id'>) => {
-    const newCheckin: CheckinEntry = {
-      ...checkin,
-      id: Date.now().toString()
-    };
-    setCheckins(prev => [newCheckin, ...prev]);
+  const loadCheckinData = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('morning_checkins')
+        .select('*')
+        .gte('timestamp', `${today}T00:00:00.000Z`)
+        .lt('timestamp', `${today}T23:59:59.999Z`)
+        .order('timestamp', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedCheckins: CheckinEntry[] = (data || []).map(checkin => ({
+        id: checkin.id,
+        memberName: checkin.member_name,
+        project: checkin.project,
+        task: checkin.task,
+        timestamp: checkin.timestamp
+      }));
+
+      setCheckins(formattedCheckins);
+    } catch (error) {
+      console.error('Error loading checkin data:', error);
+    }
   };
 
-  const removeCheckin = (id: string) => {
-    setCheckins(prev => prev.filter(checkin => checkin.id !== id));
+  const addCheckin = async (checkin: Omit<CheckinEntry, 'id'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('morning_checkins')
+        .insert({
+          member_name: checkin.memberName,
+          project: checkin.project,
+          task: checkin.task,
+          timestamp: checkin.timestamp
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newCheckin: CheckinEntry = {
+        id: data.id,
+        memberName: data.member_name,
+        project: data.project,
+        task: data.task,
+        timestamp: data.timestamp
+      };
+
+      setCheckins(prev => [newCheckin, ...prev]);
+    } catch (error) {
+      console.error('Error adding checkin:', error);
+    }
   };
 
+  const removeCheckin = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('morning_checkins')
+        .delete()
+        .eq('id', id);
 
-  // Get today's checkins only
-  const todayCheckins = checkins.filter(checkin => {
-    const checkinDate = new Date(checkin.timestamp).toDateString();
-    const today = new Date().toDateString();
-    return checkinDate === today;
-  });
+      if (error) throw error;
+
+      setCheckins(prev => prev.filter(checkin => checkin.id !== id));
+    } catch (error) {
+      console.error('Error removing checkin:', error);
+    }
+  };
 
   return {
-    checkins: todayCheckins,
+    checkins,
     addCheckin,
     removeCheckin
   };

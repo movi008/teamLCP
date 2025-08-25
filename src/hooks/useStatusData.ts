@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 export type UserStatus = 'active' | 'available-for-work' | 'not-available';
 
@@ -12,88 +13,94 @@ interface StatusData {
   [userId: string]: StatusEntry;
 }
 
-const STORAGE_KEY = 'team_status_data';
-const STATUS_HISTORY_KEY = 'status_history_data';
-
 interface StatusHistoryEntry {
   userId: string;
   status: UserStatus;
   timestamp: string;
 }
 
-const loadStatusData = (): StatusData => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error('Error loading status data from localStorage:', error);
-  }
-  return {};
-};
-
-const loadStatusHistory = (): StatusHistoryEntry[] => {
-  try {
-    const stored = localStorage.getItem(STATUS_HISTORY_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error('Error loading status history from localStorage:', error);
-  }
-  return [];
-};
-
-const saveStatusData = (data: StatusData) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error('Error saving status data to localStorage:', error);
-  }
-};
-
-const saveStatusHistory = (history: StatusHistoryEntry[]) => {
-  try {
-    localStorage.setItem(STATUS_HISTORY_KEY, JSON.stringify(history));
-  } catch (error) {
-    console.error('Error saving status history to localStorage:', error);
-  }
-};
-
 export const useStatusData = () => {
-  const [statuses, setStatuses] = useState<StatusData>(() => loadStatusData());
-  const [statusHistory, setStatusHistory] = useState<StatusHistoryEntry[]>(() => loadStatusHistory());
+  const [statuses, setStatuses] = useState<StatusData>({});
+  const [statusHistory, setStatusHistory] = useState<StatusHistoryEntry[]>([]);
 
-  // Save to localStorage whenever statuses change
+  // Load status data from Supabase
   useEffect(() => {
-    saveStatusData(statuses);
-  }, [statuses]);
+    loadStatusData();
+  }, []);
 
-  // Save status history whenever it changes
-  useEffect(() => {
-    saveStatusHistory(statusHistory);
-  }, [statusHistory]);
+  const loadStatusData = async () => {
+    try {
+      // Get latest status for each user
+      const { data: statusData, error } = await supabase
+        .from('user_status')
+        .select('*')
+        .order('timestamp', { ascending: false });
 
-  const updateStatus = (userId: string, status: UserStatus, memo?: string) => {
-    const timestamp = new Date().toISOString();
-    
-    // Add to history
-    setStatusHistory(prev => [...prev, {
-      userId,
-      status,
-      timestamp
-    }]);
-    
-    // Update current status
-    setStatuses(prev => ({
-      ...prev,
-      [userId]: {
+      if (error) throw error;
+
+      // Group by user_id and get the latest status for each user
+      const latestStatuses: StatusData = {};
+      const history: StatusHistoryEntry[] = [];
+
+      (statusData || []).forEach(status => {
+        // Add to history
+        history.push({
+          userId: status.user_id,
+          status: status.status,
+          timestamp: status.timestamp
+        });
+
+        // Keep only the latest status for each user
+        if (!latestStatuses[status.user_id]) {
+          latestStatuses[status.user_id] = {
+            status: status.status,
+            timestamp: status.timestamp,
+            memo: status.memo
+          };
+        }
+      });
+
+      setStatuses(latestStatuses);
+      setStatusHistory(history);
+    } catch (error) {
+      console.error('Error loading status data:', error);
+    }
+  };
+
+  const updateStatus = async (userId: string, status: UserStatus, memo?: string) => {
+    try {
+      const timestamp = new Date().toISOString();
+      
+      // Insert new status record
+      const { error } = await supabase
+        .from('user_status')
+        .insert({
+          user_id: userId,
+          status,
+          memo,
+          timestamp
+        });
+
+      if (error) throw error;
+
+      // Update local state
+      setStatuses(prev => ({
+        ...prev,
+        [userId]: {
+          status,
+          timestamp,
+          memo
+        }
+      }));
+
+      setStatusHistory(prev => [...prev, {
+        userId,
         status,
-        timestamp,
-        memo
-      }
-    }));
+        timestamp
+      }]);
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
   };
 
   const getStatus = (userId: string): UserStatus => {
@@ -107,6 +114,7 @@ export const useStatusData = () => {
   const getStatusMemo = (userId: string): string | null => {
     return statuses[userId]?.memo || null;
   };
+
   const getStatusHistory = (userId: string, date?: string): StatusHistoryEntry[] => {
     let history = statusHistory.filter(entry => entry.userId === userId);
     
